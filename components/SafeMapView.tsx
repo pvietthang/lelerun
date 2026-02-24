@@ -1,14 +1,18 @@
 import { Colors, FontSize, Spacing } from '@/constants/theme';
 import MapLibreGL from '@maplibre/maplibre-react-native';
-import React, { useEffect, useRef } from 'react';
+import React, { useImperativeHandle, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 // OpenFreeMap - completely free vector tile map, no API key required
-// Provides full road network, buildings, labels (powered by OpenStreetMap data)
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
 // Initialize MapLibre with no access token
 MapLibreGL.setAccessToken(null);
+
+export interface SafeMapViewRef {
+    /** Fly camera to the given GPS coordinate */
+    centerOnUser(longitude: number, latitude: number): void;
+}
 
 interface SafeMapViewProps {
     style?: any;
@@ -25,36 +29,31 @@ interface SafeMapViewProps {
         longitudeDelta?: number;
     };
     showsUserLocation?: boolean;
-    followsUserLocation?: boolean;
     scrollEnabled?: boolean;
     zoomEnabled?: boolean;
     children?: React.ReactNode;
-    mapRef?: React.RefObject<any>;
 }
 
-export function SafeMapView({
+export const SafeMapView = React.forwardRef<SafeMapViewRef, SafeMapViewProps>(function SafeMapView({
     style,
     region,
     initialRegion,
-    showsUserLocation,
-    followsUserLocation,
     children,
-    mapRef,
-}: SafeMapViewProps) {
+}: SafeMapViewProps, ref) {
     const cameraRef = useRef<any>(null);
-
     const activeRegion = region || initialRegion;
 
-    // When region changes, animate camera
-    useEffect(() => {
-        if (region && cameraRef.current && !followsUserLocation) {
-            cameraRef.current.flyTo([region.longitude, region.latitude], 300);
-        }
-    }, [region, followsUserLocation]);
+    // Expose centerOnUser method to parent — uses flyTo with real GPS coordinate
+    useImperativeHandle(ref, () => ({
+        centerOnUser(longitude: number, latitude: number) {
+            if (cameraRef.current) {
+                cameraRef.current.flyTo([longitude, latitude], 600);
+            }
+        },
+    }));
 
     return (
         <MapLibreGL.MapView
-            ref={mapRef}
             style={[styles.map, style]}
             mapStyle={MAP_STYLE_URL}
             attributionEnabled={true}
@@ -62,27 +61,17 @@ export function SafeMapView({
         >
             <MapLibreGL.Camera
                 ref={cameraRef}
-                zoomLevel={15}
-                centerCoordinate={
-                    activeRegion
+                defaultSettings={{
+                    centerCoordinate: activeRegion
                         ? [activeRegion.longitude, activeRegion.latitude]
-                        : [106.6297, 10.8231] // Default: Hồ Chí Minh
-                }
-                followUserLocation={followsUserLocation}
-                followZoomLevel={15}
-                animationMode="flyTo"
-                animationDuration={300}
+                        : [106.6297, 10.8231],
+                    zoomLevel: 15,
+                }}
             />
-            {showsUserLocation && (
-                <MapLibreGL.UserLocation
-                    visible={true}
-                    showsUserHeadingIndicator={true}
-                />
-            )}
             {children}
         </MapLibreGL.MapView>
     );
-}
+});
 
 interface PolylineProps {
     coordinates: { latitude: number; longitude: number }[];
@@ -116,6 +105,42 @@ export function SafePolyline({ coordinates, strokeColor, strokeWidth }: Polyline
                     lineWidth: strokeWidth || 5,
                     lineCap: 'round',
                     lineJoin: 'round',
+                }}
+            />
+        </MapLibreGL.ShapeSource>
+    );
+}
+
+/** Current position marker — uses ShapeSource to avoid camera follow side-effect of PointAnnotation */
+export function UserLocationMarker({ latitude, longitude }: { latitude: number; longitude: number }) {
+    const point: GeoJSON.Feature<GeoJSON.Point> = {
+        type: 'Feature',
+        properties: {},
+        geometry: {
+            type: 'Point',
+            coordinates: [longitude, latitude],
+        },
+    };
+
+    return (
+        <MapLibreGL.ShapeSource id="user-location-source" shape={point}>
+            {/* Outer halo */}
+            <MapLibreGL.CircleLayer
+                id="user-location-halo"
+                style={{
+                    circleRadius: 13,
+                    circleColor: 'rgba(0, 122, 255, 0.2)',
+                    circleStrokeWidth: 0,
+                }}
+            />
+            {/* Inner blue dot */}
+            <MapLibreGL.CircleLayer
+                id="user-location-dot"
+                style={{
+                    circleRadius: 7,
+                    circleColor: '#007AFF',
+                    circleStrokeWidth: 2.5,
+                    circleStrokeColor: '#ffffff',
                 }}
             />
         </MapLibreGL.ShapeSource>
@@ -161,6 +186,22 @@ const styles = StyleSheet.create({
         fontSize: FontSize.xs,
         color: Colors.textLight,
         marginTop: 4,
+    },
+    userDotOuter: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        backgroundColor: 'rgba(0, 122, 255, 0.25)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    userDotInner: {
+        width: 13,
+        height: 13,
+        borderRadius: 6.5,
+        backgroundColor: '#007AFF',
+        borderWidth: 2,
+        borderColor: '#fff',
     },
     markerDot: {
         width: 16,

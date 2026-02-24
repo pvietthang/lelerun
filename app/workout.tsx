@@ -1,4 +1,4 @@
-import { SafeMapView, SafePolyline } from '@/components/SafeMapView';
+import { SafeMapView, SafeMapViewRef, SafePolyline, UserLocationMarker } from '@/components/SafeMapView';
 import { BorderRadius, Colors, FontSize, Shadow, Spacing } from '@/constants/theme';
 import { LocationPoint, LocationService } from '@/services/LocationService';
 import { MotionService, MotionState } from '@/services/MotionService';
@@ -19,7 +19,7 @@ export default function WorkoutScreen() {
     const [isPaused, setIsPaused] = useState(false);
     const [distance, setDistance] = useState(0); // km
     const [duration, setDuration] = useState(0); // seconds
-    const [pace, setPace] = useState('--:--');
+    const [speed, setSpeed] = useState(0); // km/h
     const [calories, setCalories] = useState(0);
     const [motionState, setMotionState] = useState<MotionState>('stationary');
     const [routePoints, setRoutePoints] = useState<LocationPoint[]>([]);
@@ -29,7 +29,9 @@ export default function WorkoutScreen() {
     const startTimeRef = useRef<number>(0);
     const pausedDurationRef = useRef<number>(0);
     const pauseStartRef = useRef<number>(0);
-    const mapRef = useRef<any>(null);
+    const mapRef = useRef<SafeMapViewRef>(null);
+    const lastLocationRef = useRef<LocationPoint | null>(null); // Latest GPS point for locate button
+    const emaSpeedRef = useRef<number>(0); // Exponential moving average for smooth speed display
     const appStateRef = useRef(AppState.currentState);
 
     // Handle app state changes (background/foreground)
@@ -75,26 +77,44 @@ export default function WorkoutScreen() {
 
         // Start location tracking
         await LocationService.startTracking((location) => {
+            // --- Speed: prefer GPS chip speed (Doppler), fallback to position diff ---
+            let rawSpeedKmh = 0;
+            const prev = lastLocationRef.current;
+
+            if (location.speed !== null && location.speed >= 0) {
+                // GPS chip speed is in m/s
+                rawSpeedKmh = location.speed * 3.6;
+            } else if (prev) {
+                // Fallback: distance between consecutive points
+                const distKm = LocationService.calculateDistance(
+                    prev.latitude, prev.longitude,
+                    location.latitude, location.longitude
+                );
+                const elapsedSec = (location.timestamp - prev.timestamp) / 1000;
+                if (elapsedSec > 0) rawSpeedKmh = (distKm / elapsedSec) * 3600;
+            }
+
+            // Exponential Moving Average (α=0.25) — smooth without too much lag
+            const alpha = 0.25;
+            emaSpeedRef.current = alpha * rawSpeedKmh + (1 - alpha) * emaSpeedRef.current;
+            setSpeed(Math.round(emaSpeedRef.current * 10) / 10);
+
+
+            // Store latest location for locate button
+            lastLocationRef.current = location;
+
             setRoutePoints(prev => {
                 const newPoints = [...prev, location];
                 const totalDist = LocationService.calculateTotalDistance(newPoints);
                 setDistance(totalDist);
 
-                // Update pace
-                const elapsed = (Date.now() - startTimeRef.current - pausedDurationRef.current) / 1000;
-                if (totalDist > 0.01 && elapsed > 0) {
-                    const paceSeconds = elapsed / totalDist;
-                    const m = Math.floor(paceSeconds / 60);
-                    const s = Math.round(paceSeconds % 60);
-                    setPace(`${m}:${String(s).padStart(2, '0')}`);
-                }
-
                 // Update calories
+                const elapsed = (Date.now() - startTimeRef.current - pausedDurationRef.current) / 1000;
                 const elapsedMin = elapsed / 60;
                 setCalories(LocationService.estimateCalories(totalDist, elapsedMin));
 
-                // Update map region
-                setMapRegion({
+                // Set initial map center only once — camera stays put after user pans
+                setMapRegion((prev: any) => prev ?? {
                     latitude: location.latitude,
                     longitude: location.longitude,
                     latitudeDelta: 0.005,
@@ -143,6 +163,7 @@ export default function WorkoutScreen() {
                             duration: duration.toString(),
                             calories: calories.toString(),
                             routeGeoJSON: JSON.stringify(LocationService.toGeoJSON(routePoints)),
+                            startedAt: new Date(startTimeRef.current).toISOString(),
                         },
                     });
                 },
@@ -185,17 +206,22 @@ export default function WorkoutScreen() {
             <View style={styles.mapContainer}>
                 {mapRegion ? (
                     <SafeMapView
-                        mapRef={mapRef}
+                        ref={mapRef}
                         style={styles.map}
                         region={mapRegion}
-                        showsUserLocation
-                        followsUserLocation
                     >
                         {mapCoords.length > 1 && (
                             <SafePolyline
                                 coordinates={mapCoords}
                                 strokeWidth={5}
                                 strokeColor={Colors.primary}
+                            />
+                        )}
+                        {/* Custom marker at exact GPS point — no offset from route */}
+                        {mapCoords.length > 0 && (
+                            <UserLocationMarker
+                                latitude={mapCoords[mapCoords.length - 1].latitude}
+                                longitude={mapCoords[mapCoords.length - 1].longitude}
                             />
                         )}
                     </SafeMapView>
@@ -211,6 +237,20 @@ export default function WorkoutScreen() {
                     <Text style={styles.motionEmoji}>{getMotionEmoji()}</Text>
                     <Text style={styles.motionText}>{motionState}</Text>
                 </View>
+
+                {/* Locate me button */}
+                {mapRegion && (
+                    <TouchableOpacity
+                        style={styles.locateButton}
+                        onPress={() => {
+                            const loc = lastLocationRef.current;
+                            if (loc) mapRef.current?.centerOnUser(loc.longitude, loc.latitude);
+                        }}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons name="locate" size={22} color={Colors.primary} />
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Stats */}
@@ -226,8 +266,8 @@ export default function WorkoutScreen() {
                     </View>
                     <View style={styles.statItem}>
                         <Ionicons name="speedometer-outline" size={20} color={Colors.textSecondary} />
-                        <Text style={styles.statValue}>{pace}</Text>
-                        <Text style={styles.statLabel}>Pace /km</Text>
+                        <Text style={styles.statValue}>{speed.toFixed(1)}</Text>
+                        <Text style={styles.statLabel}>Speed km/h</Text>
                     </View>
                     <View style={styles.statItem}>
                         <Ionicons name="flame-outline" size={20} color={Colors.textSecondary} />
@@ -286,6 +326,18 @@ const styles = StyleSheet.create({
         paddingVertical: Spacing.sm,
         borderRadius: BorderRadius.full,
         ...Shadow.sm,
+    },
+    locateButton: {
+        position: 'absolute',
+        bottom: Spacing.md,
+        right: Spacing.md,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#fff',
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...Shadow.md,
     },
     motionEmoji: { fontSize: 18, marginRight: 4 },
     motionText: {

@@ -1,4 +1,9 @@
 import { supabase } from '@/lib/supabase';
+import { TargetService } from './TargetService';
+
+function localDateStr(d: Date = new Date()): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 export const StreakService = {
     /**
@@ -12,7 +17,6 @@ export const StreakService = {
             .single();
 
         if (error && error.code === 'PGRST116') {
-            // No streak record, create one
             const { data: newStreak, error: createError } = await supabase
                 .from('streaks')
                 .insert({ user_id: userId, current_streak: 0, longest_streak: 0, penalty_km: 0 })
@@ -25,8 +29,8 @@ export const StreakService = {
     },
 
     /**
-     * Update streak after a workout
-     * Returns: { streakUpdated, rpEarned, penaltyCleared }
+     * Update streak after a workout.
+     * Returns: { streakUpdated, rpEarned, penaltyCleared, newStreak }
      */
     async updateStreakAfterWorkout(
         userId: string,
@@ -41,56 +45,58 @@ export const StreakService = {
         const { data: streak } = await this.getStreak(userId);
         if (!streak) return { streakUpdated: false, rpEarned: 0, penaltyCleared: 0, newStreak: 0 };
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = localDateStr();
         const lastRun = streak.last_run_date;
         let currentStreak = streak.current_streak || 0;
         let longestStreak = streak.longest_streak || 0;
         let penaltyKm = streak.penalty_km || 0;
-
-        // Calculate remaining distance after meeting target + penalty
-        const totalRequired = targetKm + penaltyKm;
-        let remaining = distanceKm;
         let penaltyCleared = 0;
+        let rpEarned = 0;
 
         // First, clear penalty with distance
         if (penaltyKm > 0) {
-            if (remaining >= penaltyKm) {
+            if (distanceKm >= penaltyKm) {
                 penaltyCleared = penaltyKm;
-                remaining -= penaltyKm;
                 penaltyKm = 0;
             } else {
-                penaltyCleared = remaining;
-                penaltyKm -= remaining;
-                remaining = 0;
+                penaltyCleared = distanceKm;
+                penaltyKm -= distanceKm;
             }
         }
 
-        // Then check if target is met
-        const targetMet = remaining >= targetKm;
-        let rpEarned = 0;
+        // Remaining distance after penalty
+        const remaining = distanceKm - penaltyCleared;
+        const targetMet = targetKm > 0 ? remaining >= targetKm : distanceKm > 0;
 
         if (targetMet) {
-            // Excess distance → RP (1 RP per 100m excess)
-            const excessKm = remaining - targetKm;
-            rpEarned = Math.floor(excessKm * 10); // 10 RP per km = 1 RP per 100m
-
-            // Update streak
-            if (lastRun) {
-                const lastDate = new Date(lastRun);
-                const todayDate = new Date(today);
-                const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-
-                if (diffDays === 1) {
-                    currentStreak += 1;
-                } else if (diffDays > 1) {
-                    currentStreak = 1;
-                }
-                // diffDays === 0 means already ran today, don't increment
-            } else {
-                currentStreak = 1;
+            // Bonus RP for excess distance (10 RP per km)
+            if (targetKm > 0) {
+                const excessKm = remaining - targetKm;
+                rpEarned = Math.max(0, Math.floor(excessKm * 10));
             }
 
-            longestStreak = Math.max(longestStreak, currentStreak);
+            // Only update streak if this is a NEW run day
+            const alreadyRanToday = lastRun === today;
+            if (!alreadyRanToday) {
+                if (lastRun) {
+                    const diffDays = Math.floor(
+                        (new Date(today + 'T12:00:00').getTime() - new Date(lastRun + 'T12:00:00').getTime())
+                        / (1000 * 60 * 60 * 24)
+                    );
+                    if (diffDays === 1) {
+                        currentStreak += 1;
+                    } else if (diffDays > 1) {
+                        currentStreak = 1;
+                    }
+                } else {
+                    currentStreak = 1;
+                }
+                longestStreak = Math.max(longestStreak, currentStreak);
+
+                // Re-generate future targets based on NEW streak day
+                // Today is streak day `currentStreak`, tomorrow = currentStreak+1, etc.
+                await TargetService.generateFutureTargets(userId, currentStreak + 1, 90);
+            }
         }
 
         // Update streak record
@@ -105,7 +111,7 @@ export const StreakService = {
             })
             .eq('user_id', userId);
 
-        // Update RP balance
+        // Award RP
         if (rpEarned > 0) {
             const { data: profileData } = await supabase
                 .from('profiles')
@@ -124,33 +130,52 @@ export const StreakService = {
     },
 
     /**
-     * Check missed days and apply penalties
-     * Should be called when the app opens
+     * Check missed days and apply penalties / reset streak.
+     * Should be called when the app opens.
+     * Returns penalty km added (0 if none).
      */
     async checkAndApplyPenalties(userId: string): Promise<number> {
         const { data: streak } = await this.getStreak(userId);
-        if (!streak || !streak.last_run_date) return 0;
+        if (!streak || !streak.last_run_date) {
+            // First time user, just ensure today has a target
+            await TargetService.ensureTodayTarget(userId);
+            return 0;
+        }
 
-        const today = new Date();
-        const lastRun = new Date(streak.last_run_date);
-        const diffDays = Math.floor((today.getTime() - lastRun.getTime()) / (1000 * 60 * 60 * 24));
+        const today = localDateStr();
+        const lastRun = streak.last_run_date;
 
-        if (diffDays <= 1) return 0;
+        if (lastRun === today) {
+            // Already ran today, target is fine
+            await TargetService.ensureTodayTarget(userId);
+            return 0;
+        }
 
-        // Check if user has active skip cards
+        const diffDays = Math.floor(
+            (new Date(today + 'T12:00:00').getTime() - new Date(lastRun + 'T12:00:00').getTime())
+            / (1000 * 60 * 60 * 24)
+        );
+
+        if (diffDays <= 1) {
+            // Yesterday → streak still intact, ensure today's target exists
+            await TargetService.ensureTodayTarget(userId);
+            return 0;
+        }
+
+        // Missed 1+ days
         const missedDays = diffDays - 1;
-        let actualMissed = missedDays;
 
+        // Try to consume skip cards first
         const { data: skipCards } = await supabase
             .from('purchases')
-            .select('*, shop_items!inner(type)')
+            .select('id, shop_items!inner(type)')
             .eq('user_id', userId)
             .eq('shop_items.type', 'skip_day')
             .is('used_at', null)
             .gte('expires_at', new Date().toISOString());
 
+        let actualMissed = missedDays;
         if (skipCards && skipCards.length > 0) {
-            // Use available skip cards (up to missed days)
             const cardsToUse = Math.min(skipCards.length, missedDays);
             for (let i = 0; i < cardsToUse; i++) {
                 await supabase
@@ -162,18 +187,19 @@ export const StreakService = {
         }
 
         if (actualMissed > 0) {
-            // Get daily targets for missed days
-            const { data: targets } = await supabase
+            // Get last known target as base for penalty
+            const { data: lastTarget } = await supabase
                 .from('daily_targets')
                 .select('target_km')
                 .eq('user_id', userId)
+                .lte('effective_date', today)
                 .order('effective_date', { ascending: false })
                 .limit(1);
 
-            const targetKm = targets?.[0]?.target_km || 2.0;
-            const penaltyKm = actualMissed * targetKm;
+            const targetKm = lastTarget?.[0]?.target_km || 2.0;
+            const penaltyKm = actualMissed * Number(targetKm);
 
-            // Add penalty and reset streak
+            // Reset streak and add penalty
             await supabase
                 .from('streaks')
                 .update({
@@ -183,9 +209,17 @@ export const StreakService = {
                 })
                 .eq('user_id', userId);
 
+            // Delete future targets — user starts fresh next run
+            await TargetService.deleteFutureTargets(userId);
+
+            // Ensure today has a target (day 1 of new streak)
+            await TargetService.ensureTodayTarget(userId);
+
             return penaltyKm;
         }
 
+        // Had skip cards, streak preserved — ensure today's target
+        await TargetService.ensureTodayTarget(userId);
         return 0;
     },
 };

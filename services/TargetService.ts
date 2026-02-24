@@ -1,105 +1,135 @@
 import { supabase } from '@/lib/supabase';
 
 /**
- * Beginner running progression plan (km per day)
- * Month 1: Start easy, gradually increase
- * Month 2+: Maintain with slight increases
+ * Progressive running target — Duolingo-style
+ *
+ * Phase 1  (day  1-29):  1.0 → 2.5 km  (beginner warm-up)
+ * Phase 2  (day 30-59):  2.5 → 4.0 km  (building habit)
+ * Phase 3  (day 60-99):  4.0 → 6.0 km  (intermediate)
+ * Phase 4  (day 100+):   5.0 → 8.0 km  (advanced, slow climb)
+ *
+ * Each target = baseForPhase + (streakDay / daysInPhase) * phaseRange
+ * Rounded to 0.5 km increments for clean display.
  */
-const BEGINNER_PROGRESSION: Record<number, number[]> = {
-    // Week patterns: [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
-    1: [1.0, 0, 1.5, 0, 1.0, 2.0, 0],    // Week 1: ~5.5 km total
-    2: [1.5, 0, 2.0, 0, 1.5, 2.5, 0],    // Week 2: ~7.5 km
-    3: [2.0, 1.0, 2.0, 0, 2.0, 3.0, 0],  // Week 3: ~10 km
-    4: [2.0, 1.5, 2.5, 0, 2.0, 3.5, 0],  // Week 4: ~11.5 km
-    5: [2.5, 1.5, 3.0, 1.0, 2.5, 4.0, 0], // Week 5+
-    6: [3.0, 2.0, 3.0, 1.5, 3.0, 4.5, 0],
-    7: [3.0, 2.0, 3.5, 2.0, 3.0, 5.0, 0],
-    8: [3.5, 2.5, 3.5, 2.0, 3.5, 5.0, 0],
-};
+function getTargetKm(streakDay: number): number {
+    // streakDay: 1-indexed day within the current streak goal
+    let raw: number;
+    if (streakDay <= 30) {
+        // Phase 1: 1.0 → 2.5 km over 30 days
+        raw = 1.0 + ((streakDay - 1) / 29) * 1.5;
+    } else if (streakDay <= 60) {
+        // Phase 2: 2.5 → 4.0 km over 30 days
+        raw = 2.5 + ((streakDay - 30) / 29) * 1.5;
+    } else if (streakDay <= 100) {
+        // Phase 3: 4.0 → 6.0 km over 40 days
+        raw = 4.0 + ((streakDay - 60) / 39) * 2.0;
+    } else {
+        // Phase 4: 6.0 → 8.0 km (slow climb, cap at day 200)
+        raw = 6.0 + (Math.min(streakDay - 100, 100) / 100) * 2.0;
+    }
+    // Round to nearest 0.5
+    return Math.round(raw * 2) / 2;
+}
+
+function localDateStr(d: Date = new Date()): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function addDays(dateStr: string, n: number): string {
+    const d = new Date(dateStr + 'T12:00:00'); // noon to avoid DST edge cases
+    d.setDate(d.getDate() + n);
+    return localDateStr(d);
+}
 
 export const TargetService = {
     /**
-     * Generate daily targets for a month
+     * Generate future targets starting from today.
+     * streakDay = the streak counter for today (1 = first day of new streak).
+     * Generates DAYS_AHEAD days into the future (not including past).
      */
-    async generateMonthlyTargets(userId: string, year: number, month: number) {
-        // Check if targets already exist
-        const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 0);
+    async generateFutureTargets(userId: string, startStreakDay: number, daysAhead = 90) {
+        const today = localDateStr();
+        const rows: { user_id: string; target_km: number; effective_date: string }[] = [];
 
-        const { data: existing } = await supabase
+        for (let i = 0; i < daysAhead; i++) {
+            const date = addDays(today, i);
+            const streakDay = startStreakDay + i;
+            rows.push({
+                user_id: userId,
+                effective_date: date,
+                target_km: getTargetKm(streakDay),
+            });
+        }
+
+        // Upsert — updates if already exists (phase change, recalculate)
+        await supabase
             .from('daily_targets')
-            .select('id')
-            .eq('user_id', userId)
-            .gte('effective_date', startDate.toISOString().split('T')[0])
-            .lte('effective_date', endDate.toISOString().split('T')[0]);
-
-        if (existing && existing.length > 0) return; // Already generated
-
-        // Determine which week the user is on
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('created_at')
-            .eq('id', userId)
-            .single();
-
-        const createdAt = profile ? new Date(profile.created_at) : new Date();
-        const weeksSinceStart = Math.floor(
-            (startDate.getTime() - createdAt.getTime()) / (7 * 24 * 60 * 60 * 1000)
-        );
-
-        const targets: { user_id: string; target_km: number; effective_date: string }[] = [];
-        const daysInMonth = endDate.getDate();
-
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(year, month - 1, day);
-            const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon, ...
-            const adjustedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 0=Mon, 6=Sun
-
-            const currentWeek = weeksSinceStart + Math.ceil(day / 7);
-            const progressionWeek = Math.min(currentWeek, 8);
-            const weekPattern = BEGINNER_PROGRESSION[progressionWeek] || BEGINNER_PROGRESSION[8];
-            const targetKm = weekPattern[adjustedDay];
-
-            if (targetKm > 0) {
-                targets.push({
-                    user_id: userId,
-                    target_km: targetKm,
-                    effective_date: date.toISOString().split('T')[0],
-                });
-            }
-        }
-
-        if (targets.length > 0) {
-            await supabase.from('daily_targets').insert(targets);
-        }
+            .upsert(rows, { onConflict: 'user_id,effective_date' });
     },
 
     /**
-     * Get today's target for a user
+     * Delete all future targets for a user (from tomorrow onwards).
+     * Called when streak is broken.
      */
-    async getTodayTarget(userId: string): Promise<number> {
-        const today = new Date().toISOString().split('T')[0];
+    async deleteFutureTargets(userId: string) {
+        const tomorrow = addDays(localDateStr(), 1);
+        await supabase
+            .from('daily_targets')
+            .delete()
+            .eq('user_id', userId)
+            .gte('effective_date', tomorrow);
+    },
 
-        const { data } = await supabase
+    /**
+     * Ensure today's target exists.
+     * Called on app open and after workout.
+     * If today has no target, user has started a new streak → generate from day 1.
+     */
+    async ensureTodayTarget(userId: string): Promise<number> {
+        const today = localDateStr();
+
+        // Check if today already has a target
+        const { data: todayTarget } = await supabase
             .from('daily_targets')
             .select('target_km')
             .eq('user_id', userId)
             .eq('effective_date', today)
             .single();
 
-        return data?.target_km || 0;
+        if (todayTarget) return Number(todayTarget.target_km);
+
+        // No target for today → first day of (new) streak; look up current streak day
+        const { data: streak } = await supabase
+            .from('streaks')
+            .select('current_streak')
+            .eq('user_id', userId)
+            .single();
+
+        const currentStreak = streak?.current_streak ?? 0;
+        const startDay = currentStreak + 1; // today becomes day N+1
+
+        await this.generateFutureTargets(userId, startDay);
+        return getTargetKm(startDay);
     },
 
     /**
-     * Get all targets for a month
+     * Get today's target for a user (generates if missing)
+     */
+    async getTodayTarget(userId: string): Promise<number> {
+        return this.ensureTodayTarget(userId);
+    },
+
+    /**
+     * Get all targets for a month (for calendar display)
      */
     async getMonthTargets(userId: string, year: number, month: number) {
-        const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
-        const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+        const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+        const lastDay = new Date(year, month, 0).getDate();
+        const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
         const { data, error } = await supabase
             .from('daily_targets')
-            .select('*')
+            .select('effective_date, target_km')
             .eq('user_id', userId)
             .gte('effective_date', startDate)
             .lte('effective_date', endDate)
@@ -112,8 +142,7 @@ export const TargetService = {
      * Get today's total workout distance
      */
     async getTodayDistance(userId: string): Promise<number> {
-        const today = new Date().toISOString().split('T')[0];
-
+        const today = localDateStr();
         const { data } = await supabase
             .from('workouts')
             .select('distance_km')
@@ -121,6 +150,6 @@ export const TargetService = {
             .eq('date', today);
 
         if (!data) return 0;
-        return data.reduce((total, w) => total + Number(w.distance_km), 0);
+        return data.reduce((sum, w) => sum + Number(w.distance_km), 0);
     },
 };

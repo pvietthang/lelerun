@@ -33,9 +33,8 @@ export default function RegisterScreen() {
         if (error) {
             Alert.alert('Registration Failed', error.message);
         } else {
-            Alert.alert('Success', 'Account created! Please check your email to verify.', [
-                { text: 'OK', onPress: () => router.replace('/(auth)/login') },
-            ]);
+            // No email verification required — session is active immediately
+            router.replace('/(tabs)');
         }
     };
 

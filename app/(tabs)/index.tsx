@@ -25,9 +25,7 @@ export default function HomeScreen() {
   const loadData = useCallback(async () => {
     if (!user) return;
 
-    // Generate targets for current month if needed
-    const now = new Date();
-    await TargetService.generateMonthlyTargets(user.id, now.getFullYear(), now.getMonth() + 1);
+
 
     // Check and apply penalties for missed days
     await StreakService.checkAndApplyPenalties(user.id);

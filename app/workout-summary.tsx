@@ -24,6 +24,7 @@ export default function WorkoutSummaryScreen() {
         duration: string;
         calories: string;
         routeGeoJSON: string;
+        startedAt: string;
     }>();
 
     const [saving, setSaving] = useState(false);
@@ -34,6 +35,8 @@ export default function WorkoutSummaryScreen() {
     const distance = parseFloat(params.distance || '0');
     const duration = parseInt(params.duration || '0');
     const calories = parseInt(params.calories || '0');
+    const startedAt = params.startedAt || null;
+    const finishedAt = new Date().toISOString();
     const routeGeoJSON = params.routeGeoJSON ? JSON.parse(params.routeGeoJSON) : null;
     const routeCoords = routeGeoJSON ? LocationService.fromGeoJSON(routeGeoJSON) : [];
 
@@ -63,6 +66,8 @@ export default function WorkoutSummaryScreen() {
                 route_geojson: routeGeoJSON,
                 calories: calories,
                 date: new Date().toISOString().split('T')[0],
+                started_at: startedAt,
+                finished_at: finishedAt,
             });
 
             if (error) throw error;
