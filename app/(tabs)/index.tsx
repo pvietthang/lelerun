@@ -1,98 +1,282 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { ProgressRing } from '@/components/ProgressRing';
+import { BorderRadius, Colors, FontSize, Shadow, Spacing } from '@/constants/theme';
+import { useAuth } from '@/contexts/AuthContext';
+import { StreakService } from '@/services/StreakService';
+import { TargetService } from '@/services/TargetService';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text, TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { user, profile, refreshProfile } = useAuth();
+  const [todayTarget, setTodayTarget] = useState(0);
+  const [todayDistance, setTodayDistance] = useState(0);
+  const [streak, setStreak] = useState({ current_streak: 0, longest_streak: 0, penalty_km: 0 });
+  const [refreshing, setRefreshing] = useState(false);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const loadData = useCallback(async () => {
+    if (!user) return;
+
+    // Generate targets for current month if needed
+    const now = new Date();
+    await TargetService.generateMonthlyTargets(user.id, now.getFullYear(), now.getMonth() + 1);
+
+    // Check and apply penalties for missed days
+    await StreakService.checkAndApplyPenalties(user.id);
+
+    // Fetch today's data
+    const [target, distance, streakData] = await Promise.all([
+      TargetService.getTodayTarget(user.id),
+      TargetService.getTodayDistance(user.id),
+      StreakService.getStreak(user.id),
+    ]);
+
+    setTodayTarget(target);
+    setTodayDistance(distance);
+    if (streakData.data) setStreak(streakData.data);
+    await refreshProfile();
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
+
+  const progress = todayTarget > 0 ? todayDistance / todayTarget : 0;
+  const totalRequired = todayTarget + (streak.penalty_km || 0);
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <View style={styles.streakBadge}>
+              <Text style={styles.streakIcon}>🔥</Text>
+              <Text style={styles.streakCount}>{streak.current_streak}</Text>
+            </View>
+          </View>
+          <Text style={styles.headerTitle}>LeLeRun</Text>
+          <View style={styles.headerRight}>
+            <View style={styles.rpBadge}>
+              <Text style={styles.rpIcon}>💎</Text>
+              <Text style={styles.rpCount}>{profile?.rp_balance || 0}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Mascot */}
+        <View style={styles.mascotArea}>
+          <Text style={styles.mascot}>🏃‍♂️</Text>
+          <Text style={styles.greeting}>
+            {getGreeting()}, {profile?.username || 'Runner'}!
+          </Text>
+        </View>
+
+        {/* Progress Ring */}
+        <View style={styles.progressArea}>
+          <ProgressRing
+            progress={progress}
+            size={220}
+            current={todayDistance.toFixed(1)}
+            target={todayTarget.toFixed(1)}
+          />
+        </View>
+
+        {/* Penalty warning */}
+        {streak.penalty_km > 0 && (
+          <View style={styles.penaltyCard}>
+            <Ionicons name="warning" size={20} color={Colors.danger} />
+            <Text style={styles.penaltyText}>
+              Penalty: +{streak.penalty_km.toFixed(1)} km from missed days!
+            </Text>
+          </View>
+        )}
+
+        {/* Today's info */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Today's Target</Text>
+              <Text style={styles.infoValue}>
+                {todayTarget > 0 ? `${todayTarget.toFixed(1)} km` : 'Rest day 😴'}
+              </Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Best Streak</Text>
+              <Text style={styles.infoValue}>{streak.longest_streak} days</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Start Run Button */}
+        <TouchableOpacity
+          style={styles.startButton}
+          onPress={() => router.push('/workout')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="play" size={28} color="#fff" style={{ marginRight: 8 }} />
+          <Text style={styles.startButtonText}>START RUN</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xxl,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+  },
+  headerLeft: {},
+  headerTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: '800',
+    color: Colors.primary,
+  },
+  headerRight: {},
+  streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  streakIcon: {
+    fontSize: 18,
+    marginRight: 4,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  streakCount: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    color: Colors.streakFire,
+  },
+  rpBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3E5F5',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  rpIcon: {
+    fontSize: 18,
+    marginRight: 4,
+  },
+  rpCount: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    color: Colors.rpGem,
+  },
+  mascotArea: {
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+  },
+  mascot: {
+    fontSize: 64,
+  },
+  greeting: {
+    fontSize: FontSize.lg,
+    fontWeight: '600',
+    color: Colors.text,
+    marginTop: Spacing.sm,
+  },
+  progressArea: {
+    alignItems: 'center',
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.lg,
+  },
+  penaltyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
+  },
+  penaltyText: {
+    fontSize: FontSize.sm,
+    color: Colors.danger,
+    fontWeight: '600',
+    marginLeft: Spacing.sm,
+  },
+  infoCard: {
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  infoItem: {
+    alignItems: 'center',
+  },
+  infoLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  infoValue: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    color: Colors.text,
+    marginTop: 4,
+  },
+  startButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+    height: 64,
+    borderRadius: BorderRadius.xl,
+    ...Shadow.button,
+  },
+  startButtonText: {
+    fontSize: FontSize.xl,
+    fontWeight: '800',
+    color: Colors.textOnPrimary,
+    letterSpacing: 2,
   },
 });
