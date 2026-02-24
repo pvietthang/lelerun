@@ -21,11 +21,6 @@
       "bundleIdentifier": "com.lelerun.app"
     },
     "android": {
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyDNd_6J6gY9oIk12-7OPP1QaikI-BpIzJA"
-        }
-      },
       "adaptiveIcon": {
         "backgroundColor": "#58CC02",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
