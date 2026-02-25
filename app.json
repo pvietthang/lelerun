@@ -67,7 +67,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#58CC02"
         }
-      ]
+      ],
+      "@maplibre/maplibre-react-native"
     ],
     "experiments": {
       "typedRoutes": false,

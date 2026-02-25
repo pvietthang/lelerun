@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#59ca02",
+                        "background-light": "#f7f8f5",
+                        "background-dark": "#18230f",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: "Plus Jakarta Sans", sans-serif;
+        }
+        .shoe-character {
+            filter: drop-shadow(0 20px 30px rgba(0,0,0,0.1));
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center p-4">
+<!-- Mobile Screen Container -->
+<div class="relative w-full max-w-[430px] h-[844px] bg-primary rounded-xl overflow-hidden shadow-2xl flex flex-col items-center justify-between py-16 px-8 border-8 border-slate-900 dark:border-slate-800">
+<!-- Status Bar Mimic -->
+<div class="absolute top-0 w-full flex justify-between px-8 py-4 text-white/90">
+<span class="text-sm font-bold">9:41</span>
+<div class="flex gap-1 items-center">
+<span class="material-symbols-outlined text-sm">signal_cellular_4_bar</span>
+<span class="material-symbols-outlined text-sm">wifi</span>
+<span class="material-symbols-outlined text-sm">battery_full</span>
+</div>
+</div>
+<!-- Top spacing -->
+<div class="h-12"></div>
+<!-- Main Character Area -->
+<div class="flex-1 flex flex-col items-center justify-center w-full">
+<div class="shoe-character relative w-64 h-64 bg-white/10 rounded-full flex items-center justify-center mb-12">
+<!-- Character Illustration (SVG representation of the cute shoe) -->
+<svg class="w-48 h-48" viewbox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+<!-- Shadow -->
+<ellipse cx="100" cy="170" fill="rgba(0,0,0,0.08)" rx="60" ry="10"></ellipse>
+<!-- Wing Back -->
+<path d="M40,110 Q20,100 25,80 Q45,85 55,105" fill="white"></path>
+<!-- Shoe Body -->
+<path d="M45,135 Q40,145 60,150 L140,150 Q165,150 170,130 Q175,100 150,85 Q120,70 80,85 Q50,100 45,135" fill="white" stroke="#e2e8f0" stroke-width="2"></path>
+<!-- Grey Accents -->
+<path d="M140,150 Q165,150 170,130 L155,125 Q150,140 135,140 Z" fill="#f1f5f9"></path>
+<!-- Laces (Yellow) -->
+<path d="M85,95 L115,105" stroke="#fbbf24" stroke-linecap="round" stroke-width="6"></path>
+<path d="M92,110 L122,120" stroke="#fbbf24" stroke-linecap="round" stroke-width="6"></path>
+<!-- Wing Front -->
+<path d="M35,120 Q15,110 20,90 Q40,95 50,115" fill="white"></path>
+<!-- Expressive Eyes -->
+<circle cx="130" cy="105" fill="#1e293b" r="5"></circle>
+<circle cx="155" cy="115" fill="#1e293b" r="5"></circle>
+<!-- Blushes -->
+<circle cx="125" cy="115" fill="#fda4af" opacity="0.6" r="3"></circle>
+<circle cx="160" cy="125" fill="#fda4af" opacity="0.6" r="3"></circle>
+</svg>
+</div>
+<!-- App Title -->
+<div class="text-center">
+<h1 class="text-white text-5xl font-extrabold tracking-tight mb-2">StepUp!</h1>
+<p class="text-white/80 text-lg font-medium">Fitness is better with friends</p>
+</div>
+</div>
+<!-- Bottom Action -->
+<div class="w-full space-y-4">
+<button class="w-full bg-white text-primary h-16 rounded-2xl text-xl font-extrabold shadow-lg hover:bg-slate-50 transition-colors active:scale-95">
+                GET STARTED
+            </button>
+<button class="w-full bg-transparent text-white border-4 border-white/30 h-16 rounded-2xl text-xl font-extrabold hover:bg-white/10 transition-colors">
+                I ALREADY HAVE AN ACCOUNT
+            </button>
+</div>
+<!-- Home Indicator -->
+<div class="absolute bottom-2 w-32 h-1.5 bg-white/40 rounded-full"></div>
+</div>
+<!-- Background Elements (Abstract Patterns) -->
+<div class="fixed top-0 left-0 -z-10 w-full h-full bg-background-light dark:bg-background-dark flex items-center justify-center overflow-hidden">
+<div class="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-3xl"></div>
+<div class="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-3xl"></div>
+</div>
+</body></html>
