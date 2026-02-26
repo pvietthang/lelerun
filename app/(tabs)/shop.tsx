@@ -70,21 +70,21 @@ export default function ShopScreen() {
         if (!user) return;
 
         Alert.alert(
-            'Confirm Purchase',
-            `Buy "${item.name}" for ${item.rp_cost} RP?`,
+            'Xác nhận mua',
+            `Mua "${item.name}" với giá ${item.rp_cost} RP?`,
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'Hủy', style: 'cancel' },
                 {
-                    text: 'Buy',
+                    text: 'Mua',
                     onPress: async () => {
                         setBuying(item.id);
                         const result = await ShopService.purchaseSkipCard(user.id, item.id, item.rp_cost);
                         setBuying(null);
 
                         if (result.error) {
-                            Alert.alert('Purchase Failed', result.error.message);
+                            Alert.alert('Giao dịch thất bại', result.error.message);
                         } else {
-                            Alert.alert('Success! 🎉', `You bought "${item.name}"! It will expire in 24 hours.`);
+                            Alert.alert('Thành công! 🎉', `Bạn đã mua "${item.name}"! Vật phẩm sẽ hết hạn sau 24 giờ.`);
                             await loadData();
                             await refreshProfile();
                         }
@@ -109,7 +109,7 @@ export default function ShopScreen() {
             >
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.title}>Shop</Text>
+                    <Text style={styles.title}>Cửa hàng</Text>
                     <View style={styles.rpBadge}>
                         <Text style={styles.rpIcon}>💎</Text>
                         <Text style={styles.rpCount}>{profile?.rp_balance || 0} RP</Text>
@@ -121,7 +121,7 @@ export default function ShopScreen() {
                     <View style={styles.activeInfo}>
                         <Ionicons name="shield-checkmark" size={18} color={Colors.primary} />
                         <Text style={styles.activeText}>
-                            You have {activeCards} active skip card{activeCards > 1 ? 's' : ''}
+                            Bạn đang có {activeCards} thẻ bỏ qua hiệu lực
                         </Text>
                     </View>
                 )}
@@ -145,7 +145,7 @@ export default function ShopScreen() {
                             <View style={styles.itemFooter}>
                                 {item.type === 'skip_day' && (
                                     <View style={styles.limitBadge}>
-                                        <Text style={styles.limitText}>{weekCount}/2 this week</Text>
+                                        <Text style={styles.limitText}>{weekCount}/2 tuần này</Text>
                                     </View>
                                 )}
 
@@ -166,7 +166,7 @@ export default function ShopScreen() {
                                         <ActivityIndicator color="#fff" size="small" />
                                     ) : (
                                         <Text style={styles.buyText}>
-                                            {isMaxed ? 'MAX' : !canAfford ? 'NOT ENOUGH' : 'BUY'}
+                                            {isMaxed ? 'TỐI ĐA' : !canAfford ? 'KHÔNG ĐỦ' : 'MUA'}
                                         </Text>
                                     )}
                                 </TouchableOpacity>
@@ -176,14 +176,14 @@ export default function ShopScreen() {
                 })}
 
                 {items.length === 0 && (
-                    <Text style={styles.emptyText}>No items available yet. Check back later! 🏪</Text>
+                    <Text style={styles.emptyText}>Chưa có vật phẩm nào. Hãy quay lại sau nhé! 🏪</Text>
                 )}
 
                 {/* How to earn RP */}
                 <View style={styles.infoBox}>
-                    <Text style={styles.infoTitle}>💡 How to earn RP</Text>
+                    <Text style={styles.infoTitle}>💡 Cách kiếm RP</Text>
                     <Text style={styles.infoDesc}>
-                        Run more than your daily target! Every extra 100m = 1 RP. Keep running and level up! 🏃‍♂️
+                        Chạy vượt mục tiêu hàng ngày! Cứ mỗi 100m vượt chỉ tiêu = 1 RP. Tiếp tục chạy và lên cấp nào! 🏃‍♂️
                     </Text>
                 </View>
             </ScrollView>

@@ -20,18 +20,18 @@ export default function RegisterScreen() {
 
     const handleRegister = async () => {
         if (!username || !email || !password) {
-            Alert.alert('Error', 'Please fill in all fields');
+            Alert.alert('Lỗi', 'Vui lòng điền đủ thông tin');
             return;
         }
         if (password.length < 6) {
-            Alert.alert('Error', 'Password must be at least 6 characters');
+            Alert.alert('Lỗi', 'Mật khẩu phải từ 6 ký tự');
             return;
         }
         setLoading(true);
         const { error } = await signUp(email, password, username);
         setLoading(false);
         if (error) {
-            Alert.alert('Registration Failed', error.message);
+            Alert.alert('Đăng ký thất bại', error.message);
         } else {
             // No email verification required — session is active immediately
             router.replace('/(tabs)');
@@ -48,13 +48,13 @@ export default function RegisterScreen() {
                     <Text style={styles.mascot}>🎯</Text>
                 </View>
 
-                <Text style={styles.title}>Join LeLeRun</Text>
-                <Text style={styles.tagline}>Start your running journey today! 💪</Text>
+                <Text style={styles.title}>Tham gia LeLeRun</Text>
+                <Text style={styles.tagline}>Bắt đầu hành trình chạy bộ ngay hôm nay! 💪</Text>
 
                 <View style={styles.form}>
                     <TextInput
                         style={styles.input}
-                        placeholder="Username"
+                        placeholder="Tên người dùng"
                         placeholderTextColor={Colors.textLight}
                         value={username}
                         onChangeText={setUsername}
@@ -71,7 +71,7 @@ export default function RegisterScreen() {
                     />
                     <TextInput
                         style={styles.input}
-                        placeholder="Password (min 6 characters)"
+                        placeholder="Mật khẩu (tối thiểu 6 ký tự)"
                         placeholderTextColor={Colors.textLight}
                         value={password}
                         onChangeText={setPassword}
@@ -87,15 +87,15 @@ export default function RegisterScreen() {
                         {loading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.buttonText}>SIGN UP</Text>
+                            <Text style={styles.buttonText}>ĐĂNG KÝ</Text>
                         )}
                     </TouchableOpacity>
 
                     <View style={styles.footer}>
-                        <Text style={styles.footerText}>Already have an account? </Text>
+                        <Text style={styles.footerText}>Đã có tài khoản? </Text>
                         <Link href="/(auth)/login" asChild>
                             <TouchableOpacity>
-                                <Text style={styles.linkText}>Log in</Text>
+                                <Text style={styles.linkText}>Đăng nhập</Text>
                             </TouchableOpacity>
                         </Link>
                     </View>

@@ -105,7 +105,7 @@ export default function WorkoutSummaryScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.emoji}>🎉</Text>
-                    <Text style={styles.title}>Workout Complete!</Text>
+                    <Text style={styles.title}>Hoàn thành chạy!</Text>
                 </View>
 
                 {/* Map */}
@@ -137,12 +137,12 @@ export default function WorkoutSummaryScreen() {
                         <View style={styles.statItem}>
                             <Ionicons name="time-outline" size={22} color={Colors.primary} />
                             <Text style={styles.statValue}>{formatTime(duration)}</Text>
-                            <Text style={styles.statLabel}>Duration</Text>
+                            <Text style={styles.statLabel}>Thời gian</Text>
                         </View>
                         <View style={styles.statItem}>
                             <Ionicons name="speedometer-outline" size={22} color={Colors.primary} />
                             <Text style={styles.statValue}>{paceMin}:{String(paceSec).padStart(2, '0')}</Text>
-                            <Text style={styles.statLabel}>Avg Pace /km</Text>
+                            <Text style={styles.statLabel}>Tốc độ /km</Text>
                         </View>
                         <View style={styles.statItem}>
                             <Ionicons name="flame-outline" size={22} color={Colors.primary} />
@@ -155,13 +155,13 @@ export default function WorkoutSummaryScreen() {
                 {/* Rewards */}
                 {saved && streakResult && (
                     <View style={styles.rewardsCard}>
-                        <Text style={styles.rewardsTitle}>Rewards 🏆</Text>
+                        <Text style={styles.rewardsTitle}>Phần thưởng 🏆</Text>
 
                         {streakResult.streakUpdated && (
                             <View style={styles.rewardItem}>
                                 <Text style={styles.rewardEmoji}>🔥</Text>
                                 <Text style={styles.rewardText}>
-                                    Streak: {streakResult.newStreak} days!
+                                    Chuỗi: {streakResult.newStreak} ngày!
                                 </Text>
                             </View>
                         )}
@@ -169,7 +169,7 @@ export default function WorkoutSummaryScreen() {
                         {rpEarned > 0 && (
                             <View style={styles.rewardItem}>
                                 <Text style={styles.rewardEmoji}>💎</Text>
-                                <Text style={styles.rewardText}>+{rpEarned} RP earned!</Text>
+                                <Text style={styles.rewardText}>+{rpEarned} RP nhận được!</Text>
                             </View>
                         )}
 
@@ -177,7 +177,7 @@ export default function WorkoutSummaryScreen() {
                             <View style={styles.rewardItem}>
                                 <Text style={styles.rewardEmoji}>✅</Text>
                                 <Text style={styles.rewardText}>
-                                    {streakResult.penaltyCleared.toFixed(1)} km penalty cleared!
+                                    Đã xoá {streakResult.penaltyCleared.toFixed(1)} km phạt!
                                 </Text>
                             </View>
                         )}
@@ -186,7 +186,7 @@ export default function WorkoutSummaryScreen() {
                             <View style={styles.rewardItem}>
                                 <Text style={styles.rewardEmoji}>💪</Text>
                                 <Text style={styles.rewardText}>
-                                    Keep going! Run more to meet your target.
+                                    Cố lên biểu! Chạy thêm để đạt mục tiêu.
                                 </Text>
                             </View>
                         )}
@@ -199,7 +199,7 @@ export default function WorkoutSummaryScreen() {
                     onPress={() => router.replace('/(tabs)')}
                     activeOpacity={0.8}
                 >
-                    <Text style={styles.doneText}>DONE</Text>
+                    <Text style={styles.doneText}>XONG</Text>
                 </TouchableOpacity>
             </ScrollView>
         </SafeAreaView>

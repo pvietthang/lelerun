@@ -131,7 +131,7 @@ export default function FriendsScreen() {
             .or(`and(requester_id.eq.${user.id},addressee_id.eq.${targetId}),and(requester_id.eq.${targetId},addressee_id.eq.${user.id})`);
 
         if (existing && existing.length > 0) {
-            Alert.alert('Info', 'Friend request already exists');
+            Alert.alert('Thông báo', 'Đã tồn tại lời mời kết bạn');
             return;
         }
 
@@ -141,9 +141,9 @@ export default function FriendsScreen() {
         });
 
         if (error) {
-            Alert.alert('Error', error.message);
+            Alert.alert('Lỗi', error.message);
         } else {
-            Alert.alert('Sent! 🎉', 'Friend request sent!');
+            Alert.alert('Đã gửi! 🎉', 'Đã gửi lời mời kết bạn!');
             setSearchResults(prev => prev.filter(r => r.id !== targetId));
         }
     };
@@ -170,13 +170,13 @@ export default function FriendsScreen() {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
                 showsVerticalScrollIndicator={false}
             >
-                <Text style={styles.title}>Friends</Text>
+                <Text style={styles.title}>Bạn bè</Text>
 
                 {/* Search */}
                 <View style={styles.searchRow}>
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Search by username..."
+                        placeholder="Tìm kiếm theo tên người dùng..."
                         placeholderTextColor={Colors.textLight}
                         value={searchText}
                         onChangeText={setSearchText}
@@ -191,7 +191,7 @@ export default function FriendsScreen() {
                 {/* Search results */}
                 {searchResults.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Search Results</Text>
+                        <Text style={styles.sectionTitle}>Kết quả tìm kiếm</Text>
                         {searchResults.map(u => (
                             <View key={u.id} style={styles.userCard}>
                                 <View style={styles.avatar}>
@@ -213,7 +213,7 @@ export default function FriendsScreen() {
                 {pendingReceived.length > 0 && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>
-                            Pending Requests ({pendingReceived.length})
+                            Lời mời chờ xác nhận ({pendingReceived.length})
                         </Text>
                         {pendingReceived.map(p => (
                             <View key={p.id} style={styles.userCard}>
@@ -245,10 +245,10 @@ export default function FriendsScreen() {
                 {/* Friends list */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>
-                        Your Friends ({friends.length})
+                        Bạn bè của bạn ({friends.length})
                     </Text>
                     {friends.length === 0 ? (
-                        <Text style={styles.emptyText}>No friends yet. Search and add some! 🤝</Text>
+                        <Text style={styles.emptyText}>Chưa có bạn bè. Bắt đầu tìm kiếm và kết bạn ngay! 🤝</Text>
                     ) : (
                         friends.map(f => (
                             <View key={f.id} style={styles.userCard}>

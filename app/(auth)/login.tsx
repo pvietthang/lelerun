@@ -19,14 +19,14 @@ export default function LoginScreen() {
 
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Error', 'Please enter email and password');
+            Alert.alert('Lỗi', 'Vui lòng nhập email và mật khẩu');
             return;
         }
         setLoading(true);
         const { error } = await signIn(email, password);
         setLoading(false);
         if (error) {
-            Alert.alert('Login Failed', error.message);
+            Alert.alert('Đăng nhập thất bại', error.message);
         }
     };
 
@@ -43,7 +43,7 @@ export default function LoginScreen() {
 
                 {/* Logo */}
                 <Text style={styles.title}>LeLeRun</Text>
-                <Text style={styles.tagline}>Run every day, Level up your life! 🔥</Text>
+                <Text style={styles.tagline}>Chạy mỗi ngày, Nâng tầm cuộc sống! 🔥</Text>
 
                 {/* Form */}
                 <View style={styles.form}>
@@ -58,7 +58,7 @@ export default function LoginScreen() {
                     />
                     <TextInput
                         style={styles.input}
-                        placeholder="Password"
+                        placeholder="Mật khẩu"
                         placeholderTextColor={Colors.textLight}
                         value={password}
                         onChangeText={setPassword}
@@ -74,15 +74,15 @@ export default function LoginScreen() {
                         {loading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.buttonText}>LOG IN</Text>
+                            <Text style={styles.buttonText}>ĐĂNG NHẬP</Text>
                         )}
                     </TouchableOpacity>
 
                     <View style={styles.footer}>
-                        <Text style={styles.footerText}>Don't have an account? </Text>
+                        <Text style={styles.footerText}>Chưa có tài khoản? </Text>
                         <Link href="/(auth)/register" asChild>
                             <TouchableOpacity>
-                                <Text style={styles.linkText}>Sign up</Text>
+                                <Text style={styles.linkText}>Đăng ký</Text>
                             </TouchableOpacity>
                         </Link>
                     </View>

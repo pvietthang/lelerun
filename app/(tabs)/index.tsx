@@ -105,7 +105,7 @@ export default function HomeScreen() {
           <View style={styles.penaltyCard}>
             <Ionicons name="warning" size={20} color={Colors.danger} />
             <Text style={styles.penaltyText}>
-              Penalty: +{streak.penalty_km.toFixed(1)} km from missed days!
+              Phạt: +{streak.penalty_km.toFixed(1)} km do bỏ lỡ tập luyện!
             </Text>
           </View>
         )}
@@ -114,14 +114,14 @@ export default function HomeScreen() {
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Today's Target</Text>
+              <Text style={styles.infoLabel}>Mục tiêu hôm nay</Text>
               <Text style={styles.infoValue}>
-                {todayTarget > 0 ? `${todayTarget.toFixed(1)} km` : 'Rest day 😴'}
+                {todayTarget > 0 ? `${todayTarget.toFixed(1)} km` : 'Ngày nghỉ 😴'}
               </Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Best Streak</Text>
-              <Text style={styles.infoValue}>{streak.longest_streak} days</Text>
+              <Text style={styles.infoLabel}>Chuỗi tốt nhất</Text>
+              <Text style={styles.infoValue}>{streak.longest_streak} ngày</Text>
             </View>
           </View>
         </View>
@@ -133,7 +133,7 @@ export default function HomeScreen() {
           activeOpacity={0.8}
         >
           <Ionicons name="play" size={28} color="#fff" style={{ marginRight: 8 }} />
-          <Text style={styles.startButtonText}>START RUN</Text>
+          <Text style={styles.startButtonText}>BẮT ĐẦU CHẠY</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -142,9 +142,9 @@ export default function HomeScreen() {
 
 function getGreeting(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return 'Chào buổi sáng';
+  if (hour < 17) return 'Chào buổi chiều';
+  return 'Chào buổi tối';
 }
 
 const styles = StyleSheet.create({

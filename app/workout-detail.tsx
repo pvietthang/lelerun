@@ -90,7 +90,7 @@ export default function WorkoutDetailScreen() {
                 <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={24} color={Colors.text} />
                 </TouchableOpacity>
-                <Text style={styles.errorText}>Workout not found.</Text>
+                <Text style={styles.errorText}>Không tìm thấy bài tập.</Text>
             </SafeAreaView>
         );
     }
@@ -103,7 +103,7 @@ export default function WorkoutDetailScreen() {
                     <Ionicons name="arrow-back" size={24} color={Colors.text} />
                 </TouchableOpacity>
                 <View style={styles.headerCenter}>
-                    <Text style={styles.headerTitle}>Workout Detail</Text>
+                    <Text style={styles.headerTitle}>Chi tiết bài tập</Text>
                     <Text style={styles.headerDate}>{dateLabel}</Text>
                 </View>
                 <View style={{ width: 40 }} />
@@ -127,7 +127,7 @@ export default function WorkoutDetailScreen() {
                     ) : (
                         <View style={styles.noMap}>
                             <Ionicons name="map-outline" size={48} color={Colors.textLight} />
-                            <Text style={styles.noMapText}>No route data</Text>
+                            <Text style={styles.noMapText}>Không có dữ liệu bản đồ</Text>
                         </View>
                     )}
                 </View>
@@ -146,13 +146,13 @@ export default function WorkoutDetailScreen() {
                         <StatItem
                             icon="time-outline"
                             value={formatTime(workout.duration_sec)}
-                            label="Duration"
+                            label="Thời gian"
                         />
                         <View style={styles.divider} />
                         <StatItem
                             icon="speedometer-outline"
                             value={avgPace > 0 ? `${paceMin}:${String(paceSec).padStart(2, '0')}` : '--'}
-                            label="Avg Pace /km"
+                            label="Tốc độ /km"
                         />
                     </View>
                     <View style={styles.statRowBorder} />
@@ -170,7 +170,7 @@ export default function WorkoutDetailScreen() {
                                 : (workout.distance_km > 0 && workout.duration_sec > 0
                                     ? `${((workout.distance_km / workout.duration_sec) * 3600).toFixed(1)}`
                                     : '--')}
-                            label="Avg Speed km/h"
+                            label="Tốc độ km/h"
                         />
                     </View>
                 </View>

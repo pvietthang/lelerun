@@ -25,7 +25,7 @@ export const ShopService = {
             .single();
 
         if (!profile || profile.rp_balance < rpCost) {
-            return { error: { message: 'Not enough RP' } };
+            return { error: { message: 'Không đủ RP' } };
         }
 
         // Check weekly limit (max 2 per week)
@@ -42,7 +42,7 @@ export const ShopService = {
             .eq('week_of_year', weekOfYear);
 
         if (count !== null && count >= 2) {
-            return { error: { message: 'Maximum 2 skip cards per week' } };
+            return { error: { message: 'Tối đa 2 thẻ bỏ qua mỗi tuần' } };
         }
 
         // Create purchase with 24h expiry

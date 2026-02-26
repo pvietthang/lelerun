@@ -189,7 +189,7 @@ export default function HistoryScreen() {
             >
                 {/* Header row */}
                 <View style={styles.headerRow}>
-                    <Text style={styles.title}>History</Text>
+                    <Text style={styles.title}>Lịch sử</Text>
                     <TouchableOpacity
                         style={styles.friendPickerBtn}
                         onPress={() => setPickerVisible(true)}
@@ -201,7 +201,7 @@ export default function HistoryScreen() {
                             color={Colors.primary}
                         />
                         <Text style={styles.friendPickerText} numberOfLines={1}>
-                            {selectedUser ? selectedUser.username : 'My History'}
+                            {selectedUser ? selectedUser.username : 'Lịch sử của tôi'}
                         </Text>
                         <Ionicons name="chevron-down" size={14} color={Colors.primary} />
                     </TouchableOpacity>
@@ -263,11 +263,11 @@ export default function HistoryScreen() {
 
                 {/* Workout list */}
                 <Text style={styles.sectionTitle}>
-                    {selectedUser ? `${selectedUser.username}'s Runs` : 'Recent Workouts'}
+                    {selectedUser ? `Bài tập của ${selectedUser.username}` : 'Gần đay'}
                 </Text>
                 {workouts.length === 0 ? (
                     <Text style={styles.emptyText}>
-                        No workouts this month.{!selectedUser ? ' Start running! 🏃' : ''}
+                        Chưa có bài tập nào.{!selectedUser ? ' Bắt đầu chạy ngay! 🏃' : ''}
                     </Text>
                 ) : (
                     workouts.map(wo => (
@@ -328,19 +328,19 @@ export default function HistoryScreen() {
                     onPress={() => setPickerVisible(false)}
                 >
                     <View style={styles.pickerSheet}>
-                        <Text style={styles.pickerTitle}>View History</Text>
+                        <Text style={styles.pickerTitle}>Xem Lịch Sử</Text>
                         <TouchableOpacity
                             style={[styles.pickerItem, !selectedUser && styles.pickerItemActive]}
                             onPress={() => { setSelectedUser(null); setPickerVisible(false); }}
                         >
                             <Ionicons name="person-circle-outline" size={22} color={!selectedUser ? Colors.primary : Colors.textSecondary} />
-                            <Text style={[styles.pickerItemText, !selectedUser && styles.pickerItemTextActive]}>My History</Text>
+                            <Text style={[styles.pickerItemText, !selectedUser && styles.pickerItemTextActive]}>Lịch sử của tôi</Text>
                             {!selectedUser && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
                         </TouchableOpacity>
 
                         {friends.length > 0 && (
                             <>
-                                <Text style={styles.pickerSectionLabel}>Friends</Text>
+                                <Text style={styles.pickerSectionLabel}>Bạn bè</Text>
                                 {friends.map(f => (
                                     <TouchableOpacity
                                         key={f.id}
@@ -359,7 +359,7 @@ export default function HistoryScreen() {
                             </>
                         )}
                         {friends.length === 0 && (
-                            <Text style={styles.noFriendsText}>Add friends to view their history 🤝</Text>
+                            <Text style={styles.noFriendsText}>Thêm bạn bè để xem lịch sử của họ 🤝</Text>
                         )}
                     </View>
                 </TouchableOpacity>

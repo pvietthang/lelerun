@@ -11,9 +11,9 @@
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "LeLeRun needs your location to track your running route.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "LeLeRun needs background location access to continue tracking your run when the screen is off.",
-        "NSMotionUsageDescription": "LeLeRun uses motion data to detect if you are running or walking.",
+        "NSLocationWhenInUseUsageDescription": "LeLeRun cần vị trí của bạn để theo dõi lộ trình chạy.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "LeLeRun cần quyền truy cập vị trí chạy ngầm để tiếp tục theo dõi khi màn hình tắt.",
+        "NSMotionUsageDescription": "LeLeRun sử dụng dữ liệu chuyển động để phát hiện bạn đang chạy hay đi bộ.",
         "UIBackgroundModes": [
           "location"
         ]
@@ -56,7 +56,7 @@
       [
         "expo-sensors",
         {
-          "motionPermission": "LeLeRun uses motion data to verify running activity."
+          "motionPermission": "LeLeRun sử dụng dữ liệu chuyển động để xác minh hoạt động chạy."
         }
       ],
       [

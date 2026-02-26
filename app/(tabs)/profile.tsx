@@ -44,16 +44,16 @@ export default function ProfileScreen() {
     );
 
     const handleLogout = () => {
-        Alert.alert('Logout', 'Are you sure you want to logout?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Logout', style: 'destructive', onPress: signOut },
+        Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất?', [
+            { text: 'Hủy', style: 'cancel' },
+            { text: 'Đăng xuất', style: 'destructive', onPress: signOut },
         ]);
     };
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <ScrollView showsVerticalScrollIndicator={false}>
-                <Text style={styles.title}>Profile</Text>
+                <Text style={styles.title}>Hồ sơ</Text>
 
                 {/* Avatar & name */}
                 <View style={styles.profileSection}>
@@ -62,7 +62,7 @@ export default function ProfileScreen() {
                             {(profile?.username || '?')[0].toUpperCase()}
                         </Text>
                     </View>
-                    <Text style={styles.username}>{profile?.username || 'Runner'}</Text>
+                    <Text style={styles.username}>{profile?.username || 'Người chạy'}</Text>
                     <Text style={styles.email}>{user?.email}</Text>
                 </View>
 
@@ -71,22 +71,22 @@ export default function ProfileScreen() {
                     <View style={styles.statCard}>
                         <Text style={styles.statEmoji}>🔥</Text>
                         <Text style={styles.statValue}>{streak.current_streak}</Text>
-                        <Text style={styles.statLabel}>Day Streak</Text>
+                        <Text style={styles.statLabel}>Chuỗi ngày</Text>
                     </View>
                     <View style={styles.statCard}>
                         <Text style={styles.statEmoji}>🏆</Text>
                         <Text style={styles.statValue}>{streak.longest_streak}</Text>
-                        <Text style={styles.statLabel}>Best Streak</Text>
+                        <Text style={styles.statLabel}>Chuỗi dài nhất</Text>
                     </View>
                     <View style={styles.statCard}>
                         <Text style={styles.statEmoji}>🏃</Text>
                         <Text style={styles.statValue}>{totalWorkouts}</Text>
-                        <Text style={styles.statLabel}>Workouts</Text>
+                        <Text style={styles.statLabel}>Số bài tập</Text>
                     </View>
                     <View style={styles.statCard}>
                         <Text style={styles.statEmoji}>📏</Text>
                         <Text style={styles.statValue}>{totalDistance.toFixed(1)}</Text>
-                        <Text style={styles.statLabel}>Total km</Text>
+                        <Text style={styles.statLabel}>Tổng km</Text>
                     </View>
                 </View>
 
@@ -95,14 +95,14 @@ export default function ProfileScreen() {
                     <Text style={styles.rpIcon}>💎</Text>
                     <View>
                         <Text style={styles.rpValue}>{profile?.rp_balance || 0} RP</Text>
-                        <Text style={styles.rpLabel}>Run Points</Text>
+                        <Text style={styles.rpLabel}>Điểm chạy bộ</Text>
                     </View>
                 </View>
 
                 {/* Logout */}
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
                     <Ionicons name="log-out-outline" size={22} color={Colors.danger} />
-                    <Text style={styles.logoutText}>Logout</Text>
+                    <Text style={styles.logoutText}>Đăng xuất</Text>
                 </TouchableOpacity>
             </ScrollView>
         </SafeAreaView>
