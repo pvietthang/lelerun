@@ -5,6 +5,12 @@ function localDateStr(d: Date = new Date()): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function addDays(dateStr: string, n: number): string {
+    const d = new Date(dateStr + 'T12:00:00'); // noon to avoid DST edge cases
+    d.setDate(d.getDate() + n);
+    return localDateStr(d);
+}
+
 export const StreakService = {
     /**
      * Get streak data for a user
@@ -42,6 +48,9 @@ export const StreakService = {
         penaltyCleared: number;
         newStreak: number;
     }> {
+        // Ensure penalties and resets are calculated first
+        await this.checkAndApplyPenalties(userId);
+
         const { data: streak } = await this.getStreak(userId);
         if (!streak) return { streakUpdated: false, rpEarned: 0, penaltyCleared: 0, newStreak: 0 };
 
@@ -78,19 +87,7 @@ export const StreakService = {
             // Only update streak if this is a NEW run day
             const alreadyRanToday = lastRun === today;
             if (!alreadyRanToday) {
-                if (lastRun) {
-                    const diffDays = Math.floor(
-                        (new Date(today + 'T12:00:00').getTime() - new Date(lastRun + 'T12:00:00').getTime())
-                        / (1000 * 60 * 60 * 24)
-                    );
-                    if (diffDays === 1) {
-                        currentStreak += 1;
-                    } else if (diffDays > 1) {
-                        currentStreak = 1;
-                    }
-                } else {
-                    currentStreak = 1;
-                }
+                currentStreak = currentStreak === 0 ? 1 : currentStreak + 1;
                 longestStreak = Math.max(longestStreak, currentStreak);
 
                 // Re-generate future targets based on NEW streak day
@@ -145,6 +142,15 @@ export const StreakService = {
         const today = localDateStr();
         const lastRun = streak.last_run_date;
 
+        if (streak.updated_at) {
+            const updatedAtLocal = localDateStr(new Date(streak.updated_at));
+            if (updatedAtLocal === today) {
+                // Already processed penalties or ran today
+                await TargetService.ensureTodayTarget(userId);
+                return 0;
+            }
+        }
+
         if (lastRun === today) {
             // Already ran today, target is fine
             await TargetService.ensureTodayTarget(userId);
@@ -175,6 +181,7 @@ export const StreakService = {
             .gte('expires_at', new Date().toISOString());
 
         let actualMissed = missedDays;
+        let newLastRun = lastRun;
         if (skipCards && skipCards.length > 0) {
             const cardsToUse = Math.min(skipCards.length, missedDays);
             for (let i = 0; i < cardsToUse; i++) {
@@ -184,6 +191,11 @@ export const StreakService = {
                     .eq('id', skipCards[i].id);
             }
             actualMissed -= cardsToUse;
+            // Advance last_run_date by cardsToUse days to simulate runs
+            newLastRun = addDays(lastRun, cardsToUse);
+
+            // Just update last_run_date immediately if actualMissed == 0.
+            // If actualMissed > 0, we'll update it along with penalties below.
         }
 
         if (actualMissed > 0) {
@@ -197,28 +209,52 @@ export const StreakService = {
                 .limit(1);
 
             const targetKm = lastTarget?.[0]?.target_km || 2.0;
-            const penaltyKm = actualMissed * Number(targetKm);
 
-            // Reset streak and add penalty
-            await supabase
-                .from('streaks')
-                .update({
-                    penalty_km: (streak.penalty_km || 0) + penaltyKm,
-                    current_streak: 0,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('user_id', userId);
+            if (actualMissed === 1) {
+                // Keep streak, add penalty
+                const penaltyKm = Number(targetKm);
+                await supabase
+                    .from('streaks')
+                    .update({
+                        penalty_km: (streak.penalty_km || 0) + penaltyKm,
+                        last_run_date: newLastRun, // Advanced by skip cards if any
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq('user_id', userId);
 
-            // Delete future targets — user starts fresh next run
-            await TargetService.deleteFutureTargets(userId);
+                await TargetService.ensureTodayTarget(userId);
+                return penaltyKm;
+            } else {
+                // actualMissed >= 2: Reset streak, erase penalty
+                await supabase
+                    .from('streaks')
+                    .update({
+                        penalty_km: 0,
+                        current_streak: 0,
+                        last_run_date: newLastRun, // Advanced by skip cards if any, though likely 0
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq('user_id', userId);
 
-            // Ensure today has a target (day 1 of new streak)
-            await TargetService.ensureTodayTarget(userId);
+                // Delete future targets — user starts fresh next run
+                await TargetService.deleteFutureTargets(userId);
 
-            return penaltyKm;
+                // Ensure today has a target (day 1 of new streak)
+                await TargetService.ensureTodayTarget(userId);
+                return 0;
+            }
         }
 
-        // Had skip cards, streak preserved — ensure today's target
+        // actualMissed == 0 (Had skip cards), streak preserved — ensure today's target
+        // Update updated_at so we don't re-check today, and apply newLastRun
+        await supabase
+            .from('streaks')
+            .update({
+                last_run_date: newLastRun,
+                updated_at: new Date().toISOString()
+            })
+            .eq('user_id', userId);
+
         await TargetService.ensureTodayTarget(userId);
         return 0;
     },
