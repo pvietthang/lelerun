@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TargetService } from './TargetService';
 
 function localDateStr(d: Date = new Date()): string {
@@ -140,7 +141,15 @@ export const StreakService = {
         }
 
         const today = localDateStr();
-        const lastRun = streak.last_run_date;
+        const lastRun = streak.last_run_date ? streak.last_run_date.substring(0, 10) : '';
+
+        // Safest prevention of reload bug: Use AsyncStorage as reliable double-check!
+        const penaltyCheckedKey = `penalty_checked_${userId}`;
+        const lastCheckedDate = await AsyncStorage.getItem(penaltyCheckedKey);
+        if (lastCheckedDate === today) {
+            await TargetService.ensureTodayTarget(userId);
+            return 0;
+        }
 
         if (streak.updated_at) {
             const updatedAtLocal = localDateStr(new Date(streak.updated_at));
@@ -153,6 +162,7 @@ export const StreakService = {
 
         if (lastRun === today) {
             // Already ran today, target is fine
+            await AsyncStorage.setItem(penaltyCheckedKey, today);
             await TargetService.ensureTodayTarget(userId);
             return 0;
         }
@@ -162,8 +172,9 @@ export const StreakService = {
             / (1000 * 60 * 60 * 24)
         );
 
-        if (diffDays <= 1) {
+        if (diffDays <= 1 || isNaN(diffDays)) {
             // Yesterday → streak still intact, ensure today's target exists
+            await AsyncStorage.setItem(penaltyCheckedKey, today);
             await TargetService.ensureTodayTarget(userId);
             return 0;
         }
@@ -222,6 +233,7 @@ export const StreakService = {
                     })
                     .eq('user_id', userId);
 
+                await AsyncStorage.setItem(penaltyCheckedKey, today);
                 await TargetService.ensureTodayTarget(userId);
                 return penaltyKm;
             } else {
@@ -240,6 +252,7 @@ export const StreakService = {
                 await TargetService.deleteFutureTargets(userId);
 
                 // Ensure today has a target (day 1 of new streak)
+                await AsyncStorage.setItem(penaltyCheckedKey, today);
                 await TargetService.ensureTodayTarget(userId);
                 return 0;
             }
@@ -255,6 +268,7 @@ export const StreakService = {
             })
             .eq('user_id', userId);
 
+        await AsyncStorage.setItem(penaltyCheckedKey, today);
         await TargetService.ensureTodayTarget(userId);
         return 0;
     },

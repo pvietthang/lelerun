@@ -39,7 +39,10 @@ export default function HomeScreen() {
 
     setTodayTarget(target);
     setTodayDistance(distance);
-    if (streakData.data) setStreak(streakData.data);
+    if (streakData.data) {
+      console.log("STREAK FETCHED:", streakData.data);
+      setStreak(streakData.data);
+    }
     await refreshProfile();
   }, [user]);
 

@@ -72,12 +72,14 @@ export const TargetService = {
      * Called when streak is broken.
      */
     async deleteFutureTargets(userId: string) {
-        const tomorrow = addDays(localDateStr(), 1);
+        // When streak is broken, delete today's target (if not already ran) and all future targets 
+        // to force a fresh target generation from day 1
+        const today = localDateStr();
         await supabase
             .from('daily_targets')
             .delete()
             .eq('user_id', userId)
-            .gte('effective_date', tomorrow);
+            .gte('effective_date', today);
     },
 
     /**

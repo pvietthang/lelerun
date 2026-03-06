@@ -129,7 +129,7 @@ export default function ShopScreen() {
                 {/* Items */}
                 {items.map(item => {
                     const weekCount = weeklyCount[item.id] || 0;
-                    const isMaxed = item.type === 'skip_day' && weekCount >= 2;
+                    const isMaxed = item.type === 'skip_day' && weekCount >= 4;
                     const canAfford = (profile?.rp_balance || 0) >= item.rp_cost;
 
                     return (
@@ -145,7 +145,7 @@ export default function ShopScreen() {
                             <View style={styles.itemFooter}>
                                 {item.type === 'skip_day' && (
                                     <View style={styles.limitBadge}>
-                                        <Text style={styles.limitText}>{weekCount}/2 tuần này</Text>
+                                        <Text style={styles.limitText}>{weekCount}/4 tuần này</Text>
                                     </View>
                                 )}
 

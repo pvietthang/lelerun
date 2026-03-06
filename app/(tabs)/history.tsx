@@ -1,4 +1,4 @@
-import { BorderRadius, Colors, FontSize, Spacing } from '@/constants/theme';
+import { BorderRadius, Colors, FontSize, Shadow, Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { TargetService } from '@/services/TargetService';
@@ -222,7 +222,7 @@ export default function HistoryScreen() {
                 <View style={styles.calendarCard}>
                     {/* Weekday headers */}
                     <View style={styles.calWeekHeader}>
-                        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                        {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((d, i) => (
                             <Text key={i} style={styles.calHeaderCell}>{d}</Text>
                         ))}
                     </View>
@@ -234,23 +234,39 @@ export default function HistoryScreen() {
                                 const isToday = day.date === today;
                                 const isPast = day.date < today;
                                 const isFuture = day.date > today;
+
+                                // Determine styles based on day status
+                                let circleStyle = styles.defaultCircle;
+                                let textStyle = styles.defaultDayText;
+
+                                if (isToday) {
+                                    circleStyle = styles.todayCircle;
+                                    textStyle = styles.todayText;
+                                } else if (isPast && (day.completed || (!day.hasTarget && day.distanceKm > 0))) {
+                                    circleStyle = styles.completedCircle;
+                                    textStyle = styles.completedText;
+                                } else if (isPast && day.hasTarget && !day.completed) {
+                                    circleStyle = styles.missedCircle;
+                                    textStyle = styles.missedText;
+                                } else if (isFuture && day.hasTarget) {
+                                    circleStyle = styles.futureCircle;
+                                }
+
                                 return (
-                                    <View key={di} style={[styles.calDayCell, isToday && styles.todayCell]}>
-                                        <Text style={[styles.dayNum, isToday && styles.todayText]}>{dayNum}</Text>
-                                        {day.hasTarget && (
-                                            <Text style={[styles.dayTarget, day.completed && isPast && styles.dayTargetDone]}>
-                                                {day.targetKm.toFixed(1)}
+                                    <View key={di} style={styles.calDayCell}>
+                                        <View style={[styles.dayCircleBase, circleStyle]}>
+                                            <Text style={[styles.dayNum, textStyle]}>{dayNum}</Text>
+                                        </View>
+
+                                        {day.hasTarget ? (
+                                            <Text style={[styles.dayTarget, (day.completed && isPast) && styles.dayTargetDone]}>
+                                                {day.targetKm.toFixed(1)}k
                                             </Text>
+                                        ) : (
+                                            <Text style={styles.dayTargetEmpty}>-</Text>
                                         )}
-                                        {day.hasTarget && isPast && day.completed && (
-                                            <Ionicons name="checkmark-circle" size={12} color={Colors.calendarCompleted} />
-                                        )}
-                                        {day.hasTarget && isPast && !day.completed && (
-                                            <Ionicons name="close-circle" size={12} color={Colors.calendarMissed} />
-                                        )}
-                                        {!day.hasTarget && isPast && day.distanceKm > 0 && (
-                                            <Ionicons name="checkmark-circle" size={12} color={Colors.calendarCompleted} />
-                                        )}
+
+                                        {/* Optional dots or indicators below */}
                                         {isFuture && day.hasTarget && (
                                             <View style={styles.futureDot} />
                                         )}
@@ -263,7 +279,7 @@ export default function HistoryScreen() {
 
                 {/* Workout list */}
                 <Text style={styles.sectionTitle}>
-                    {selectedUser ? `Bài tập của ${selectedUser.username}` : 'Gần đay'}
+                    {selectedUser ? `Bài tập của ${selectedUser.username}` : 'Gần đây'}
                 </Text>
                 {workouts.length === 0 ? (
                     <Text style={styles.emptyText}>
@@ -405,28 +421,43 @@ const styles = StyleSheet.create({
     },
     monthText: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.text },
     calendarCard: {
-        backgroundColor: Colors.backgroundSecondary, borderRadius: BorderRadius.lg,
-        marginHorizontal: Spacing.lg, padding: Spacing.md, marginBottom: Spacing.lg,
+        backgroundColor: Colors.backgroundCard, borderRadius: BorderRadius.xl,
+        marginHorizontal: Spacing.lg, padding: Spacing.lg, marginBottom: Spacing.lg,
+        borderWidth: 1, borderColor: Colors.borderLight,
+        ...Shadow.sm,
     },
-    calWeekHeader: { flexDirection: 'row', marginBottom: 4 },
+    calWeekHeader: { flexDirection: 'row', marginBottom: Spacing.sm },
     calHeaderCell: {
         flex: 1, textAlign: 'center',
         fontSize: FontSize.xs, fontWeight: '700', color: Colors.textSecondary,
-        paddingVertical: 4,
+        paddingVertical: 4, textTransform: 'uppercase',
     },
-    calWeekRow: { flexDirection: 'row' },
+    calWeekRow: { flexDirection: 'row', marginBottom: 6 },
     calDayCell: {
-        flex: 1, minHeight: 54,
+        flex: 1, minHeight: 60,
         justifyContent: 'flex-start', alignItems: 'center',
-        paddingTop: 3, paddingBottom: 2,
     },
-    todayCell: { backgroundColor: Colors.calendarToday + '20', borderRadius: BorderRadius.md },
-    dayNum: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.text },
-    todayText: { color: Colors.calendarToday, fontWeight: '800' },
-    dayTarget: { fontSize: 9, fontWeight: '600', color: Colors.textLight, marginTop: 1 },
-    dayTargetDone: { color: Colors.calendarCompleted },
-    futureDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.calendarFuture, marginTop: 2 },
-    sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.text, paddingHorizontal: Spacing.lg, marginBottom: Spacing.md },
+    dayCircleBase: {
+        width: 32, height: 32, borderRadius: 16,
+        justifyContent: 'center', alignItems: 'center',
+        marginBottom: 4,
+    },
+    defaultCircle: { backgroundColor: 'transparent' },
+    defaultDayText: { color: Colors.text },
+    todayCircle: { backgroundColor: Colors.calendarToday },
+    todayText: { color: '#fff', fontWeight: '800' },
+    completedCircle: { backgroundColor: Colors.primaryDark },
+    completedText: { color: '#fff', fontWeight: '800' },
+    missedCircle: { backgroundColor: Colors.danger + '20' }, // Light red tint
+    missedText: { color: '#b91c1c', fontWeight: '800' },      // Dark red text
+    futureCircle: { backgroundColor: Colors.calendarFuture + '40', borderWidth: 1, borderColor: Colors.borderLight },
+
+    dayNum: { fontSize: FontSize.sm, fontWeight: '600' },
+    dayTarget: { fontSize: 10, fontWeight: '600', color: Colors.textLight },
+    dayTargetDone: { color: Colors.primaryDark },
+    dayTargetEmpty: { fontSize: 10, color: 'transparent' },
+    futureDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: Colors.calendarFuture, marginTop: 4 },
+    sectionTitle: { fontSize: FontSize.lg, fontWeight: '800', color: Colors.text, paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm, marginTop: Spacing.sm },
     emptyText: { textAlign: 'center', color: Colors.textSecondary, fontSize: FontSize.md, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xl },
     workoutCard: {
         flexDirection: 'row', alignItems: 'center',

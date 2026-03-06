@@ -28,7 +28,7 @@ export const ShopService = {
             return { error: { message: 'Không đủ RP' } };
         }
 
-        // Check weekly limit (max 2 per week)
+        // Check weekly limit (max 4 per week)
         const now = new Date();
         const currentWeek = getISOWeek(now);
         const currentYear = now.getFullYear();
@@ -41,8 +41,8 @@ export const ShopService = {
             .eq('item_id', itemId)
             .eq('week_of_year', weekOfYear);
 
-        if (count !== null && count >= 2) {
-            return { error: { message: 'Tối đa 2 thẻ bỏ qua mỗi tuần' } };
+        if (count !== null && count >= 4) {
+            return { error: { message: 'Tối đa 4 thẻ bỏ qua mỗi tuần' } };
         }
 
         // Create purchase with 24h expiry
